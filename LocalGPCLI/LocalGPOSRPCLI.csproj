@@ -73,14 +73,10 @@
     <Content Include="..\..\..\_LIB\CS_UOM\OLD_CONVERT\__OLD_UOM.Win32.Memory.cs">
       <Link>LIBs\__OLD_UOM.Win32.Memory.cs</Link>
     </Content>
-    <Compile Include="..\..\..\_LIB\CS_UOM\uom.Multiplatform.Core.cs">
-      <Link>LIBs\uom.Multiplatform.Core.cs</Link>
-    </Compile>
-    <Compile Include="..\..\..\_LIB\CS_UOM\uom.Win.Core.cs">
-      <Link>LIBs\uom.Win.Core.cs</Link>
-    </Compile>
     <Compile Include="LIBs\SRP.cs" />
     <None Include="LP_Core\ActiveDirectoryGroupPolicyObject.cs" />
+    <Compile Include="LIBs\uom.Multiplatform.Core.cs" />
+    <Compile Include="LIBs\uom.Win.Core.cs" />
     <Compile Include="LP_Core\ComputerGroupPolicyObject.cs" />
     <Compile Include="LP_Core\GroupPolicyException.cs" />
     <Compile Include="LP_Core\GroupPolicyObject.cs" />

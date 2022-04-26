@@ -63,7 +63,7 @@ namespace LGPOSRPCLI
         private const string ERR_GPO_ROOT_HKLM_FAILED_TO_OPEN = "Failed to open root GPO HKLM!";
         private const string ERR_GPO_FAILED_TO_OPEN_KEY = "Failed to open GPO key '{0}'!";
 
-        LocalPolicy.ComputerGroupPolicyObject? _LocalPol = null;
+        LocalPolicy.ComputerGroupPolicyObject _LocalPol;
 
         public SRP(bool Writable)
         {
@@ -134,23 +134,15 @@ namespace LGPOSRPCLI
             set => Policy_SetSaferValue(C_SAFER_VALUE_NAME_ExecutableTypes, value.e_Sort(), RegistryValueKind.MultiString, DeleteRegistryValueIfNullValue: false);
         }
 
-        public string ExecutableTypesAsFlatString => ExecutableTypes.e_Join(C_EXECUTABLE_FILE_TYPES_SEPARATOR_CHAR);
+        public string ExecutableTypesAsFlatString => ExecutableTypes.e_Join(C_EXECUTABLE_FILE_TYPES_SEPARATOR_CHAR)!;
 
         public override string ToString() =>
             $"Level: {Level}\n" +
             $"Scope: {Scope}\n" +
             $"Use certificates: {AuthenticodeEnabled}\n" +
             $"Transparent mode: {TransparentEnabled}\n" +
-            $"Log File: {(LogFileEnabled ? LogFileName : "[not used]".ToUpper())}\n" +
-            $"Executables: {ExecutableTypesAsFlatString}";
-
-        public string ToStringColorized() =>
-           $"Level: {Level}\n".e_Format() +
-           $"Scope: {Scope}\n" +
-           $"Use certificates: {AuthenticodeEnabled}\n" +
-           $"Transparent mode: {TransparentEnabled}\n" +
-           $"Log File: {(LogFileEnabled ? LogFileName : "[not used]".ToUpper())}\n" +
-           $"Executables: {ExecutableTypesAsFlatString}";
+            $"Log File: {LogFileName.e_ToStringAllowNull()}\n" +
+            $"Executables ({ExecutableTypes.Length}): {ExecutableTypesAsFlatString}";
 
         private void Policy_OpenSaferKey_Machine(String Key, Boolean Writable, Action<RegistryKey> KeyOpenedCallBack)
         {

@@ -6,18 +6,18 @@ namespace LocalPolicy
     public class ComputerGroupPolicyObject : GroupPolicyObject
     {
         /// <summary>Opens the default GPO for the local computer </summary>
-        public ComputerGroupPolicyObject(GroupPolicyObjectSettings? options = null)
+        public ComputerGroupPolicyObject(GroupPolicyObjectSettings options = null)
         {
             options ??= new GroupPolicyObjectSettings();
-            trycatch(() => instance.OpenLocalMachineGPO(options.Flag), "Unable to open local machine GPO");
+            trycatch(() => instance!.OpenLocalMachineGPO(options!.Flag), "Unable to open local machine GPO");
             IsLocal = true;
         }
         /// <summary>Opens the default GPO for the specified remote computer</summary>
         /// <param name="computerName">Name of the remote computer in the format "\\ComputerName"</param>
-        public ComputerGroupPolicyObject(string computerName, GroupPolicyObjectSettings? options = null)
+        public ComputerGroupPolicyObject(string computerName, GroupPolicyObjectSettings options = null)
         {
             options ??= new GroupPolicyObjectSettings();
-            trycatch(() => instance.OpenRemoteMachineGPO(computerName, options.Flag), $"Unable to open GPO on remote machine '{computerName}'");
+            trycatch(() => instance!.OpenRemoteMachineGPO(computerName, options!.Flag), $"Unable to open GPO on remote machine '{computerName}'");
             IsLocal = false;
         }
 
@@ -34,7 +34,11 @@ namespace LocalPolicy
         public override string GetPathTo(GroupPolicySection section)
         {
             StringBuilder sb = new StringBuilder(maxLength);
-            trycatch(() => instance.GetFileSysPath((uint)section, sb, maxLength), $"Unable to retrieve path to section '{Enum.GetName(typeof(GroupPolicySection), section)}'");
+            trycatch(() => instance.GetFileSysPath(
+                (uint)section,
+                sb,
+                maxLength),
+                $"Unable to retrieve path to section '{Enum.GetName(typeof(GroupPolicySection), section)}'");
             return sb.ToString();
         }
     }

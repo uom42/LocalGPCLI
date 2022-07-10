@@ -3,10 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using uom;
 using uom.Extensions;
@@ -30,6 +33,7 @@ namespace LocalGPCLI
             [Description("Turn on SRP for all users except Admins (set Level = DISALLOWED, Scope = ALL_EXCEPT_ADMINS).")]
             OnExA
         }
+
 
         [STAThread]
         static void Main(string[] args)
@@ -161,6 +165,42 @@ namespace LocalGPCLI
 
              */
 
+        }
+
+
+        [MethodImpl(MethodImplOptions.NoOptimization | MethodImplOptions.NoInlining)]
+        static void Test_RemoveSpaces()
+        {
+            const int MaxIterations = 1000000;
+            string strSample = "Turn on SRP for all users except Admins (set Level = DISALLOWED, Scope = ALL_EXCEPT_ADMINS).";
+            string strResult = "";
+
+            Console.Clear();
+            Console.WriteLine("Start Testing space removing from string:");
+            strSample.e_WriteConsole(ConsoleColor.Green);
+            Console.WriteLine($"Iterations: '{MaxIterations.e_Format()}'");
+
+            Regex SpacesPattern = new(@"\s");
+
+            var sw = new Stopwatch();
+            sw.Start();
+            for (int i = 0; i < MaxIterations; i++)
+            {
+                strResult = String.Empty;
+
+                //strResult = SpacesPattern.Replace(strSample, match => string.Empty);
+                //strResult = strSample.Replace(" ", string.Empty);
+                strResult = string.Concat(strSample.Where(c => !char.IsWhiteSpace(c)));
+            }
+            sw.Stop();
+            //Console.WriteLine($"Elapsed (V.Replace)= {sw.Elapsed.TotalMilliseconds}ms");
+            //Console.WriteLine($"Elapsed (SpacesPattern.Replace)= {sw.Elapsed.TotalMilliseconds}ms");
+            Console.WriteLine($"Elapsed (Linq.Concat)= {sw.Elapsed.TotalMilliseconds}ms");
+
+            strResult.e_WriteConsole(ConsoleColor.Yellow);
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.WriteLine();
         }
     }
 }

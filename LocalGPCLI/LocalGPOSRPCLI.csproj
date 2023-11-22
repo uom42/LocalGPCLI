@@ -1,105 +1,135 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
-  <PropertyGroup>
-    <LangVersion>10.0</LangVersion>
-    <Nullable>enable</Nullable>
-    <NullableContextOptions>enable</NullableContextOptions>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{37D9D706-7A9E-4A50-974F-BC13BD0B9D27}</ProjectGuid>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>LGPOSRPCLI</RootNamespace>
-    <AssemblyName>SRP</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Deterministic>false</Deterministic>
-    <TargetFrameworkProfile />
-    <PublishUrl>publish\</PublishUrl>
-    <Install>true</Install>
-    <InstallFrom>Disk</InstallFrom>
-    <UpdateEnabled>false</UpdateEnabled>
-    <UpdateMode>Foreground</UpdateMode>
-    <UpdateInterval>7</UpdateInterval>
-    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
-    <UpdatePeriodically>false</UpdatePeriodically>
-    <UpdateRequired>false</UpdateRequired>
-    <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
-    <UseApplicationTrust>false</UseApplicationTrust>
-    <BootstrapperEnabled>true</BootstrapperEnabled>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>none</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ApplicationIcon>Windows.ico</ApplicationIcon>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="LIBs\SRP.cs" />
-    <None Include="LP_Core\ActiveDirectoryGroupPolicyObject.cs" />
-    <Compile Include="LIBs\uom.Multiplatform.Core.cs" />
-    <Compile Include="LIBs\uom.Win.Core.cs" />
-    <Compile Include="LP_Core\ComputerGroupPolicyObject.cs" />
-    <Compile Include="LP_Core\GroupPolicyException.cs" />
-    <Compile Include="LP_Core\GroupPolicyObject.cs" />
-    <Compile Include="LP_Core\GroupPolicyObjectOptions.cs" />
-    <Compile Include="LP_Core\GroupPolicyObjectSettings.cs" />
-    <Compile Include="LP_Core\GroupPolicySection.cs" />
-    <Compile Include="LP_Core\IGroupPolicy.cs" />
-    <Compile Include="LP_Core\RequiresSingleThreadedApartmentException.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <BootstrapperPackage Include=".NETFramework,Version=v4.8">
-      <Visible>False</Visible>
-      <ProductName>Microsoft .NET Framework 4.8 %28x86 and x64%29</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Windows.ico" />
-  </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<OutputType>Exe</OutputType>
+
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+
+		<LangVersion>latest</LangVersion>
+
+		<CharacterSet>Unicode</CharacterSet>
+		<ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+	</PropertyGroup>
+	
+	<PropertyGroup>
+		<ApplicationIcon>Windows.ico</ApplicationIcon>
+		
+		<RootNamespace>LGPOSRPCLI</RootNamespace>
+		
+		<AssemblyName>SRP</AssemblyName>
+
+		<Product>WinAdmin</Product>
+		<AssemblyProduct>$(Product)</AssemblyProduct>
+		<Title>Local PC Group Policy Software Restriction Policies command line interface</Title>
+		<AssemblyTitle>$(Title)</AssemblyTitle>
+		<Description>$(Title)</Description>
+		<AssemblyDescription>$(Description)</AssemblyDescription>
+		<Authors>UOM</Authors>
+		<AssemblyCompany>$(Authors)</AssemblyCompany>
+		<!-- Versions -->
+		<!--https://learn.microsoft.com/en-us/visualstudio/msbuild/property-functions?view=vs-2022-->
+		<Today>$([System.DateTime]::Now.ToString("yy.M.d"))</Today>
+		<Year>$([System.DateTime]::Now.ToString("yyyy"))</Year>
+		<Copyright>©UOM 2021-$(Year)</Copyright>
+		<AssemblyCopyright>$(Copyright)</AssemblyCopyright>
+		<Version>$(Today).1</Version>
+		<ApplicationVersion>$(Version)</ApplicationVersion>
+		<AssemblyVersion>$(Version)</AssemblyVersion>
+		<FileVersion>$(Version)</FileVersion>
+		<ProductVersion>$(Version)</ProductVersion>
+		
+		<!--	 
+		[assembly: AssemblyTitle("Local Group Policy Software Restriction Policies Command Line Interface")]
+[assembly: AssemblyDescription("This tool allow to turn on/off existing Local Group Policy Software Restriction Policies.")]
+[assembly: AssemblyProduct("LGPOSRPCLI")]
+ 	
+		<BootstrapperPackage Include=".NETFramework,Version=v4.8">
+			<Visible>False</Visible>
+			<ProductName>Microsoft .NET Framework 4.8 %28x86 and x64%29</ProductName>
+			<Install>true</Install>
+		</BootstrapperPackage>
+		<BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+			<Visible>False</Visible>
+			<ProductName>.NET Framework 3.5 SP1</ProductName>
+			<Install>false</Install>
+		</BootstrapperPackage>		
+	-->
+	
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- This GUID Used for COM Group Policy app identification
+		Include must be the fully qualified .NET type name of the Attribute to create. -->
+		<AssemblyAttribute Include="System.Runtime.InteropServices.GuidAttribute">
+			<!-- _Parameter1, _Parameter2, etc. correspond to the matching parameter of a constructor of that .NET attribute type -->
+			<_Parameter1>37d9d706-7a9e-4a50-974f-bc13bd0b9d27</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
+
+
+	<PropertyGroup>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+	</PropertyGroup>
+
+	<!--
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<OutputPath>bin\</OutputPath>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<DebugType>none</DebugType>
+		<OutputPath>bin\</OutputPath>
+	</PropertyGroup>
+		<Reference Include="System.Configuration" />
+	-->
+	
+	
+	
+	<ItemGroup>
+		<Compile Remove="LP_Core\ActiveDirectoryGroupPolicyObject.cs" />
+		<PackageReference Include="Alba.CsConsoleFormat" Version="1.0.0" />
+		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+		
+
+		<PackageReference Include="Vanara.Pinvoke.Kernel32" Version="4.1.3" />
+		<PackageReference Include="Vanara.Pinvoke.User32" Version="4.1.3" />
+		<PackageReference Include="Vanara.Pinvoke.Gdi32" Version="4.1.3" />
+
+
+		<PackageReference Include="Vanara.Security" Version="4.1.3" />
+		<PackageReference Include="Vanara.Pinvoke.Security" Version="4.1.3" />
+
+		<PackageReference Include="Vanara.Pinvoke.Shell32" Version="4.1.3" />
+		<PackageReference Include="Vanara.Pinvoke.ShlwApi" Version="4.1.3" />
+
+		<PackageReference Include="Vanara.Pinvoke.IpHlpApi" Version="4.1.3" />
+		<PackageReference Include="Vanara.Pinvoke.NtDll" Version="4.1.3" />
+
+		<PackageReference Include="Vanara.PInvoke.Accessibility" Version="4.1.3" />
+
+		<PackageReference Include="Vanara.Pinvoke.DwmApi" Version="4.1.3" />
+		
+				<!--
+		<PackageReference Include="Vanara.Windows.Forms" Version="4.0.5" />
+
+
+
+<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+		<PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
+		-->
+
+
+	</ItemGroup>
+	
+	
+	
+	<ItemGroup>
+	  <Folder Include="Properties\" />
+	</ItemGroup>
 </Project>

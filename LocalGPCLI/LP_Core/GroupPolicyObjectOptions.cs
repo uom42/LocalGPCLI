@@ -1,46 +1,31 @@
-﻿
-namespace LocalPolicy
+﻿namespace LocalPolicy;
+
+
+public struct GroupPolicyObjectOptions (bool userEnabled = true, bool machineEnabled = true)
 {
-    public struct GroupPolicyObjectOptions
-    {
-        public readonly bool UserEnabled;
-        public readonly bool MachineEnabled;
+	private const uint disableUserFlag = 0x00000001;
+	private const uint disableMachineFlag = 0x00000002;
+	internal const uint Mask = disableUserFlag | disableMachineFlag;
 
-        public GroupPolicyObjectOptions(bool userEnabled = true, bool machineEnabled = true)
-        {
-            UserEnabled = userEnabled;
-            MachineEnabled = machineEnabled;
-        }
-        public GroupPolicyObjectOptions(uint flag)
-        {
-            UserEnabled = (flag & disableUserFlag) == 0;
-            MachineEnabled = (flag & disableMachineFlag) == 0;
-        }
+	public readonly bool UserEnabled = userEnabled;
+	public readonly bool MachineEnabled = machineEnabled;
 
-        private const uint disableUserFlag = 0x00000001;
-        private const uint disableMachineFlag = 0x00000002;
 
-        internal uint Flag
-        {
-            get
-            {
-                uint flag = 0x00000000;
-                if (!UserEnabled)
-                    flag |= disableUserFlag;
-                if (!MachineEnabled)
-                    flag |= disableMachineFlag;
-                return flag;
-            }
-        }
+	public GroupPolicyObjectOptions (uint flag) : this(
+		(flag & disableUserFlag) == 0,
+		(flag & disableMachineFlag) == 0
+		)
+	{ }
 
-        internal uint Mask
-        {
-            get
-            {
-                // We always change everything
-                return disableUserFlag 
-                    | disableMachineFlag;
-            }
-        }
-    }
+	internal uint Flag
+	{
+		get
+		{
+			uint flag = 0;
+			if (!UserEnabled) flag |= disableUserFlag;
+			if (!MachineEnabled) flag |= disableMachineFlag;
+			return flag;
+		}
+	}
+
 }

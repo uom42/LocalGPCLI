@@ -1,10 +1,9 @@
-﻿
-namespace LocalPolicy
+﻿namespace LocalPolicy;
+
+
+public enum GroupPolicySection
 {
-    public enum GroupPolicySection
-    {
-        Root = 0,
-        User = 1,
-        Machine = 2,
-    }
+	Root = 0,
+	User = 1,
+	Machine = 2,
 }

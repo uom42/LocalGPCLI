@@ -1,206 +1,338 @@
-﻿using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using System.CommandLine;
+
+using Alba.CsConsoleFormat;
+using Alba.CsConsoleFormat.Fluent;
+
 using uom;
-using uom.Extensions;
 
-namespace LocalGPCLI
+
+namespace LGPOSRPCLI;
+
+
+abstract class Program
 {
-    abstract class Program
-    {
-        private enum VALID_ARGS
-        {
-            Unknown,
-
-            [Description("Turn off SRP (set Level = FULLYTRUSTED).")]
-            Off,
 
 
-            [Description("Turn on SRP for all users (set Level = DISALLOWED, Scope = ALL_USERS).")]
-            On,
+	[STAThread]
+	static void Main (string[] args)
+	{
+		try
+		{
+			{//LOGO
+				Console.WriteLine(Extensions.ConsoleSeparator);
+				Console.WriteLine($"{AppInfo.Title} v{AppInfo.AssemblyFileVersionAttribute} {AppInfo.Copyright}");
+				Console.WriteLine($"{AppInfo.Comments}\nThis tool don't create new SRP! Only manage existing one.");
+				Console.WriteLine(Extensions.ConsoleSeparator);
+			}
 
+			if (uom.Network.Helpers.IsInDomain()) throw new NotSupportedException("This PC is in domain, use domain GPO SRP instead!");
 
-            [Description("Turn on SRP for all users except Admins (set Level = DISALLOWED, Scope = ALL_EXCEPT_ADMINS).")]
-            OnExA
-        }
+			RegisterEnvPath();
 
+			var cli = BuildCLI();
+			cli.SetHandler(() =>
+			{
+				//Console.WriteLine("Main app!");
+				ShowSRPStatus();
+			});
 
-        [STAThread]
-        static void Main(string[] args)
-        {
-            PrintLogo();
-            try
-            {
-                if (uom.Net.IsInDomain()) throw new NotSupportedException("This PC is in domain, use domain GPO SRP instead.");
+			cli.InvokeCaseInsensitive(args);
 
-                ShowCurrentSRPInfo();
-                if (args.Any()) ParseArgs(args);
-            }
-            catch (Exception Ex)
-            {
+		}
+		catch (Exception Ex)
+		{
 
-                ("ERROR: " + Ex.Message).e_WriteConsole(ConsoleColor.Red);
+			("ERROR: " + Ex.Message).eWriteConsole(ConsoleColor.Red);
 #if DEBUG
-                Ex.StackTrace.e_WriteConsole(ConsoleColor.Red);
+			Ex.StackTrace.eWriteConsole(ConsoleColor.Red);
 #endif
-                Console.WriteLine();
-
-                Console.WriteLine("Current OS:");
-                Console.WriteLine(uom.OS.CurrentOS.ToString());
-                //Console.WriteLine();
-                Console.WriteLine($"User: '{uom.OS.UserAccounts.GetCurrentUserSID().LookupAccount().FQDN}'");
-                Console.WriteLine($"Processs UAC elevation: '{uom.AppInfo.GetProcessElevation()}'");
-                Console.WriteLine();
-
-
-            }
-            finally
-            {
+			//Console.WriteLine();
+			Console.WriteLine(Extensions.ConsoleSeparator);
+			Console.WriteLine($"OS: \t{uom.OS.CurrentOS.Version}");
+			Console.WriteLine($"User: \t'{Environment.UserName}'");
+			Console.WriteLine($"UAC elevation: \t'{uom.AppInfo.GetProcessElevation()}'");
+			Console.WriteLine();
+		}
+		finally
+		{
+			/*
 #if DEBUG
-                "\nDEBUG MODE. Press a key to exit".e_WriteConsole(ConsoleColor.Yellow);
-                try { _ = Console.ReadKey(); } catch { Console.WriteLine("Can't read console input. App exited."); }
+			"\nDEBUG MODE. Press a key to exit".eWriteConsole(ConsoleColor.Yellow);
+			try
+			{
+				//_ = Console.ReadKey();
+			}
+			catch
+			{
+				Console.WriteLine("Can't read console input. App exited.");
+			}
 #endif
-            }
-        }
+			 */
+		}
+	}
 
-        public static void PrintLogo()
-        {
-            var SeparatorStr = '-'.e_Repeat();
-            Console.WriteLine(SeparatorStr);
-            Console.WriteLine($"{AppInfo.Title} v{AppInfo.ProductVersion}\n{AppInfo.Copyright}");
-            Console.WriteLine($"\n{AppInfo.Comments}\nIt does not allow to create new SRP, but only allow to manage existing.");
+	private static void RegisterEnvPath ()
+	{
+#if DEBUG
+		return;//Do not register debug version
+#endif
 
-            Console.WriteLine(SeparatorStr);
+		try
+		{
+			string[] pathVars = (Environment.GetEnvironmentVariable("path", EnvironmentVariableTarget.Machine) ?? string.Empty)
+								.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            var assembly = Assembly.GetExecutingAssembly();
-            var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
-            var sFile = new FileInfo(assembly.Location).Name;
+			var appDir = uom.AppInfo.AssemblyLocation.Directory!.FullName;
 
-            Console.WriteLine("Usage:");
-            foreach (VALID_ARGS a in Enum.GetValues(typeof(VALID_ARGS)))
-            {
-                var sDescr = a.e_GetDescriptionValue();
-                if (sDescr.e_IsNOTNullOrWhiteSpace()) Console.WriteLine($"{sFile} {a.ToString()}\t= {sDescr}".e_Indent(2, ' '));
-            }
-            Console.WriteLine(SeparatorStr);
-        }
+			if (pathVars.Any() && pathVars.eContainsInvariantCultureIgnoreCase(appDir))
+			{
+				//Console.WriteLine("environment Path already registered");
+				return;//Already registered
+			}
 
-        static void ParseArgs(string[] args)
-        {
-            var sFirstArg = args[0].Trim();
-            var eArg = VALID_ARGS.Unknown;
-            _ = Enum.TryParse<VALID_ARGS>(sFirstArg, true, out eArg);
+			pathVars = [ .. pathVars, appDir ];//Append my path to env
+			string pathVar = pathVars.eJoin(Path.PathSeparator.ToString())!;
+			Environment.SetEnvironmentVariable("path", pathVar, EnvironmentVariableTarget.Machine);
+			//Console.WriteLine($"Registering in environment Path: '{pathVar}'");
+		}
+		catch (Exception ex) { }//Ignore
+	}
 
-            //var bWasChanged = false;
-            switch (eArg)
-            {
-                case VALID_ARGS.Off:
-                    {
-                        var rSRP = new LGPOSRPCLI.SRP(true);
-                        rSRP.Level = LGPOSRPCLI.SRP.LEVELS.FULLYTRUSTED;
-                        //bWasChanged = true;
-                        break;
-                    }
+	private static RootCommand BuildCLI ()
+	{
+		RootCommand rootCommand = [];
+		GetCLICommands().eForEach(cmd => rootCommand.Add(cmd));
+		return rootCommand;
+	}
+	private static Command[] GetCLICommands ()
+	{
+		/*
 
-                case VALID_ARGS.On:
-                    {
-                        var rSRP = new LGPOSRPCLI.SRP(true);
-                        rSRP.Level = LGPOSRPCLI.SRP.LEVELS.DISALLOWED;
-                        rSRP.Scope = LGPOSRPCLI.SRP.SCOPES.ALL_USERS;
-                        //bWasChanged = true;
-                        break;
-                    }
+		var sub1Command = new Command("sub1", "First-level subcommand");
+		rootCommand.Add(sub1Command);
 
-                case VALID_ARGS.OnExA:
-                    {
-                        var rSRP = new LGPOSRPCLI.SRP(true);
-                        rSRP.Level = LGPOSRPCLI.SRP.LEVELS.DISALLOWED;
-                        rSRP.Scope = LGPOSRPCLI.SRP.SCOPES.ALL_EXCEPT_ADMINS;
-                        //bWasChanged = true;
-                        break;
-                    }
+		var sub1aCommand = new Command("sub1a", "Second level subcommand");
+		sub1Command.Add(sub1aCommand);
 
-                default:
-                    throw new Exception($"Unknown argument '{sFirstArg}'!");
-            }
+		 */
 
-            "\nSRP Setttings was changed!".e_WriteConsole(ConsoleColor.Green);
-            ShowCurrentSRPInfo();
-        }
+		var cmdOff = new Command("off", $"Turn off SRP (set Level={nameof(SRP.LEVELS.FULLYTRUSTED)}).");
+		cmdOff.SetHandler(() =>
+		{
+			ShowSRPStatus(false);
 
-        static void ShowCurrentSRPInfo()
-        {
-            Console.WriteLine("Current SRP Settings:");
-            var rSRP = new LGPOSRPCLI.SRP(true);
-            var sSRP = rSRP.ToString().e_Indent(2, ' ');
-            Console.WriteLine(sSRP);
+			//Console.WriteLine("cmdOff");
+			var rSRP = new SRP(true)
+			{
+				Level = SRP.LEVELS.FULLYTRUSTED
+			};
+			AfterSRPChages(false);
+			return;
+		});
 
+		var cmdOn = new Command("on", $"Turn on SRP for all users (set Level={nameof(SRP.LEVELS.DISALLOWED)}, Scope={nameof(SRP.Scope.ALL_USERS)}).");
+		cmdOn.SetHandler(() =>
+		{
+			ShowSRPStatus(false);
 
+			//Console.WriteLine("cmdOn");
+			var rSRP = new SRP(true)
+			{
+				Level = SRP.LEVELS.DISALLOWED,
+				Scope = SRP.SCOPES.ALL_USERS
+			};
+			AfterSRPChages(false);
+			return;
+		});
 
+		var cmdOnExtened = new Command("onx", $"Turn on SRP for all users except Admins (set Level={nameof(SRP.LEVELS.DISALLOWED)}, Scope={nameof(SRP.Scope.ALL_EXCEPT_ADMINS)}).");
+		cmdOnExtened.SetHandler(() =>
+		{
+			ShowSRPStatus(false);
 
+			//Console.WriteLine("cmdOnExtened");
+			var rSRP = new SRP(true)
+			{
+				Level = SRP.LEVELS.DISALLOWED,
+				Scope = SRP.SCOPES.ALL_EXCEPT_ADMINS
+			};
 
+			AfterSRPChages(false);
+			return;
+		});
 
-
-            /*            
-
-            int linqCounter = 0;
-            byte[] array = { 0, 0, 1, 0, 1 };
-            var bytes = array.Where(x =>
-            {
-                linqCounter++;
-                return x > 0;
-            });
-            bool t = bytes.First() == bytes.Last();
-            Console.WriteLine(linqCounter);
-
-             */
-
-        }
+		Option<string> itemDataOption = new(
+			name: "--path",
+			description: "Path to the rule ItemData.");
 
 
-        [MethodImpl(MethodImplOptions.NoOptimization | MethodImplOptions.NoInlining)]
-        static void Test_RemoveSpaces()
-        {
-            const int MaxIterations = 1000000;
-            string strSample = "Turn on SRP for all users except Admins (set Level = DISALLOWED, Scope = ALL_EXCEPT_ADMINS).";
-            string strResult = "";
+		var cmdRuleAdd = new Command("rule-add", $"Create new rule for specifed path with Level={nameof(SRP.LEVELS.FULLYTRUSTED)}");
+		cmdRuleAdd.AddOption(itemDataOption);
+		cmdRuleAdd.SetHandler(RuleAdd, itemDataOption);
 
-            Console.Clear();
-            Console.WriteLine("Start Testing space removing from string:");
-            strSample.e_WriteConsole(ConsoleColor.Green);
-            Console.WriteLine($"Iterations: '{MaxIterations.e_Format()}'");
+		var cmdRuleDelete = new Command("rule-delete", $"Delete rule with specifed ID.");
+		Option<string> ruleIDOption = new(
+			name: "--id",
+			description: "Rule ID");
+		cmdRuleDelete.AddOption(ruleIDOption);
+		cmdRuleDelete.SetHandler(RuleDelete, ruleIDOption);
 
-            Regex SpacesPattern = new(@"\s");
 
-            var sw = new Stopwatch();
-            sw.Start();
-            for (int i = 0; i < MaxIterations; i++)
-            {
-                strResult = String.Empty;
+		return [ cmdOff, cmdOn, cmdOnExtened, cmdRuleAdd, cmdRuleDelete ];
 
-                //strResult = SpacesPattern.Replace(strSample, match => string.Empty);
-                //strResult = strSample.Replace(" ", string.Empty);
-                strResult = string.Concat(strSample.Where(c => !char.IsWhiteSpace(c)));
-            }
-            sw.Stop();
-            //Console.WriteLine($"Elapsed (V.Replace)= {sw.Elapsed.TotalMilliseconds}ms");
-            //Console.WriteLine($"Elapsed (SpacesPattern.Replace)= {sw.Elapsed.TotalMilliseconds}ms");
-            Console.WriteLine($"Elapsed (Linq.Concat)= {sw.Elapsed.TotalMilliseconds}ms");
+	}
 
-            strResult.e_WriteConsole(ConsoleColor.Yellow);
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine();
-        }
-    }
+
+
+
+	private static void RuleAdd (string path)
+	{
+		ShowSRPStatus();
+
+		path = path.Trim();
+		if (path.IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(path));
+
+		SRP.SaferRule rule = new(path, SRP.LEVELS.FULLYTRUSTED);
+		Console.WriteLine($"Creating new rule:\n{rule.ToString().eIndentLines(2, ' ')}");
+
+		var rSRP = new SRP(true);
+		rSRP.AppendRule(rule);
+
+		AfterSRPChages(true, [ rule ]);
+	}
+
+
+	private static void RuleDelete (string id)
+	{
+		ShowSRPStatus();
+
+		const int C_MIN_RULE_ID_LEN = 5;
+
+		id = id.Trim();
+		if (id.IsNullOrWhiteSpace() || id.Length < C_MIN_RULE_ID_LEN)
+			throw new ArgumentOutOfRangeException(nameof(id), $"Rule ID '{id}' must be at least {C_MIN_RULE_ID_LEN} char len to avoid accidentally deleting important rules!");
+
+
+		if (!id.Any()) throw new ArgumentNullException(nameof(id));
+
+		var rSRP = new SRP(true);
+		var allRules = rSRP.LoadRules();
+		var rulesToDelete = allRules
+			.Where(rule => rule.ID.ToString().Contains(id, StringComparison.OrdinalIgnoreCase))
+			.ToArray();
+
+		if (!rulesToDelete.Any())
+			throw new ArgumentOutOfRangeException(nameof(id), $"Not found any rules to delete with ID contains '{id}'!");
+
+		rSRP.Delete(rulesToDelete);
+		AfterSRPChages(true);
+	}
+
+
+	private static void AfterSRPChages (bool showRules = true, SRP.SaferRule[]? rulesToHighLight = null)
+	{
+		"SRP was changed!".eWriteConsole(ConsoleColor.Yellow, ConsoleColor.DarkRed);
+		ShowSRPStatus(showRules, rulesToHighLight);
+	}
+
+	static void ShowSRPStatus (bool showRules = true, SRP.SaferRule[]? rulesToHighLight = null)
+	{
+		Console.WriteLine("Current SRP Settings:");
+		SRP srp = new(false);
+		var srpString = srp.ToString().eIndentLines(2, ' ');
+		Console.WriteLine(srpString);
+
+		if (!showRules) return;
+
+		var totalRules = srp.LoadRules();
+		if (totalRules.Any())
+		{
+			Console.WriteLine($"SRP Rules: Total ({totalRules.Length})");
+
+			totalRules = [ ..
+				totalRules
+				.OrderBy(r => r.Level)
+				.ThenBy(r => r.ItemData)
+				];
+
+			var grid = new Grid
+			{
+				Stroke = LineThickness.Double,
+				StrokeColor = ConsoleColor.DarkGray,
+				AutoPosition = true,
+				Align = Align.Left,
+			};
+
+			grid.Columns.Add(
+				new Column { Width = GridLength.Auto },
+						new Column { Width = GridLength.Auto },
+						new Column { Width = GridLength.Star(1) },
+						new Column { Width = GridLength.Star(1) }
+					);
+
+			//Header
+			grid.Children.Add(
+				new Cell("Level") { Stroke = LineThickness.Single },
+				new Cell("ID") { Stroke = LineThickness.Single },
+				new Cell("ItemData") { Stroke = LineThickness.Single },
+				new Cell("Description") { Stroke = LineThickness.Single }
+				);
+
+			//Rows
+			SRP.LEVELS oldLlevel = totalRules.First().Level;
+			grid.Children.Add(
+				totalRules.Select(rule =>
+				{
+					ConsoleColor clrText = rule.Level.ToConsoleColor();
+					ConsoleColor? clrBack = null;
+					if (rulesToHighLight != null && rulesToHighLight.Any())
+					{
+						var foundRuleToHighlight = rulesToHighLight
+							.Where(r => r.ID.Equals(rule.ID))
+							.Any();
+
+						if (foundRuleToHighlight)
+						{
+							clrBack = ConsoleColor.Cyan;
+							clrText = ConsoleColor.Magenta;
+						}
+					}
+
+					var frame = LineThickness.Single;
+					//var frame = new LineThickness(LineWidth.Single, LineWidth.None, LineWidth.Single, LineWidth.None); //LineThickness.Single;
+					if (oldLlevel != rule.Level)
+					{
+						//frame.Top = LineWidth.Single;
+						oldLlevel = rule.Level;
+					}
+
+					ConsoleColor clrTextPath = clrText;
+
+
+					string itemData = rule.ItemData ?? string.Empty;
+					if (!rule.CheckPathExist())
+					{
+						clrTextPath = ConsoleColor.Red;
+						itemData += $"\n!PATH NOT FOUND!";
+					}
+
+					return new[]
+					{
+					new Cell(rule.Level) {  Stroke =   frame, Color = clrText,Background = clrBack },
+					new Cell(rule.ID) { Stroke = frame, Color = clrText,Background = clrBack },
+					new Cell(itemData) { Stroke = frame, Color = clrTextPath, Background = clrBack ,TextWrap = TextWrap.CharWrap  },
+					new Cell(rule.Description) { Stroke = frame, Color = clrText,Background = clrBack , TextWrap = TextWrap.CharWrap },
+				};
+				}
+				)
+				);
+
+			Colors.WriteLine(grid);
+		}
+	}
+
+
+
+
 }
+
